@@ -184,3 +184,44 @@ export interface WorldSetting {
 export const WORLD_CATEGORIES = [
   "地理", "历史", "势力", "种族", "魔法", "科技", "文化", "宗教", "政治", "其他",
 ] as const;
+
+// ── Poetry types ──
+
+export type Dynasty = "先秦" | "两汉" | "魏晋" | "南北朝" | "唐" | "五代" | "宋" | "元" | "明" | "清";
+
+export type PoemType = "诗" | "词" | "曲" | "文";
+
+export type TimeTag = "清晨" | "上午" | "正午" | "午后" | "黄昏" | "入夜" | "深夜" | "通用";
+
+export type TermTag =
+  | "立春" | "雨水" | "惊蛰" | "春分" | "清明" | "谷雨"
+  | "立夏" | "小满" | "芒种" | "夏至" | "小暑" | "大暑"
+  | "立秋" | "处暑" | "白露" | "秋分" | "寒露" | "霜降"
+  | "立冬" | "小雪" | "大雪" | "冬至" | "小寒" | "大寒"
+  | "春" | "夏" | "秋" | "冬" | "通用";
+
+export type PlaceTag = string;
+
+export interface Poem {
+  id: string;
+  title: string;
+  author: string;
+  dynasty: Dynasty;
+  type: PoemType;
+  content: string[];
+  background?: string;
+  notes?: Record<string, string>;
+  tags: {
+    time: TimeTag[];
+    terms: TermTag[];
+    places: PlaceTag[];
+    moods: string[];
+    objects: string[];
+  };
+}
+
+export interface PoemAnalysis {
+  appreciation: string;
+  themes: string[];
+  beauty: string;
+}
