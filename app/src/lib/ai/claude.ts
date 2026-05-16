@@ -180,14 +180,14 @@ const POLISH_TYPE_MAP: Record<string, string> = {
   full: "全面优化（综合语法修正、用词优化、句式调整）",
 };
 
-const AI_PROVIDER_ENDPOINTS: Record<AIProviderId, string> = {
+export const AI_PROVIDER_ENDPOINTS: Record<AIProviderId, string> = {
   claude: "https://api.anthropic.com/v1/messages",
   openai: "https://api.openai.com/v1/chat/completions",
   deepseek: "https://api.deepseek.com/v1/chat/completions",
   custom: "",
 };
 
-const AI_PROVIDER_DEFAULT_MODELS: Record<AIProviderId, string> = {
+export const AI_PROVIDER_DEFAULT_MODELS: Record<AIProviderId, string> = {
   claude: "claude-sonnet-4-5",
   openai: "gpt-4o",
   deepseek: "deepseek-chat",
@@ -201,4 +201,10 @@ function getEnvKey(provider: AIProviderId): string | undefined {
     case "deepseek": return process.env.DEEPSEEK_API_KEY;
     default: return undefined;
   }
+}
+
+export function parseAIJsonResponse<T>(rawText: string): T {
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Failed to parse JSON from AI response");
+  return JSON.parse(jsonMatch[0]) as T;
 }
