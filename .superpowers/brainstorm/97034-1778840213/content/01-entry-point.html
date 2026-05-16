@@ -1,0 +1,31 @@
+<h2>诗歌赏析功能应该以什么方式融入 App？</h2>
+<p class="subtitle">这决定了导航结构、页面布局和用户接触诗歌的频次</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>独立页面 — 侧边栏新增「诗」导航</h3>
+      <p>类似日记、心情等模块，拥有独立路由 <code>/poetry</code>，侧边栏添加导航项。诗歌赏析成为一级功能模块，空间充足，可容纳地图、节气、时间等多维度浏览。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>首页嵌入 — 仪表盘中增加诗歌卡片</h3>
+      <p>在现有首页仪表盘中嵌入一个「今日诗词」卡片，轻量展示。用户无需额外导航即可每日邂逅一首诗。点击可展开详情或跳转完整页面。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>右侧滑入面板 — 类似 AI / 音乐面板</h3>
+      <p>新增 TopBar 触发按钮（如诗句图标），点击后从右侧滑入诗歌面板。轻量、随时随地可唤起，不打断当前写作流程，适合快速浏览和灵感触发。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>推荐方案：A + B 组合</h3>
+  <p>独立页面作为<strong>主体</strong>（完整的地图、节气、时间三个维度的浏览体验），同时在首页嵌入「今日诗词」卡片作为<strong>轻量入口</strong>，两者联动。这样既有深度浏览空间，也有每日不经意的诗意邂逅。</p>
+</div>

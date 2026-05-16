@@ -1,0 +1,440 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-warm: var(--accent-warm);
+  --color-border: var(--border-color);
+  --color-ink: var(--ink);
+  --color-vermillion: var(--vermillion);
+  --color-jade: var(--jade);
+  --color-gold: var(--gold);
+  --color-indigo-ink: var(--indigo-ink);
+
+  --font-sans: "Inter", "Noto Sans SC", sans-serif;
+  --font-serif: "Noto Serif SC", "STSong", "SimSun", serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Noto Serif SC", "KaiTi", serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   水墨主题 (Ink Wash) — 默认主题，黑白极简禅意
+   ═══════════════════════════════════════════════════════════════ */
+:root, [data-theme="ink"] {
+  --bg-primary: #F8F5F0;
+  --bg-secondary: #F0EBE3;
+  --bg-elevated: #FFFDF9;
+  --text-primary: #2C2418;
+  --text-secondary: #6B5E4F;
+  --text-tertiary: #9C8E7C;
+  --accent: #B84C3D;
+  --accent-soft: #F5E6E3;
+  --accent-warm: #D4956A;
+  --border-color: #E0D5C5;
+  --shadow: 0 2px 8px rgba(44, 36, 24, 0.06);
+  --shadow-md: 0 8px 24px rgba(44, 36, 24, 0.1);
+
+  --ink: #2C2418;
+  --vermillion: #B84C3D;
+  --jade: #5C8A6E;
+  --gold: #C9943E;
+  --indigo-ink: #3B4A6B;
+  --font-display: "Noto Serif SC", "KaiTi", serif;
+}
+
+.dark, [data-theme="ink"].dark {
+  --bg-primary: #12100E;
+  --bg-secondary: #1A1714;
+  --bg-elevated: #211E1A;
+  --text-primary: #E8E0D4;
+  --text-secondary: #9C8E7C;
+  --text-tertiary: #6B5E4F;
+  --accent: #D4705F;
+  --accent-soft: #2D1F1C;
+  --accent-warm: #C9943E;
+  --border-color: #302A22;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --ink: #E8E0D4;
+  --vermillion: #D4705F;
+  --jade: #6B9E7E;
+  --gold: #D4A854;
+  --indigo-ink: #7B8DB3;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   青花主题 (Blue Porcelain) — 蓝白典雅清新
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="blue-porcelain"] {
+  --bg-primary: #F4F6FA;
+  --bg-secondary: #E9EDF4;
+  --bg-elevated: #FDFDFF;
+  --text-primary: #1B2435;
+  --text-secondary: #546378;
+  --text-tertiary: #8493AD;
+  --accent: #3A5F8A;
+  --accent-soft: #E6EDF5;
+  --accent-warm: #6B8DBF;
+  --border-color: #D3DCE8;
+  --shadow: 0 2px 8px rgba(27, 36, 53, 0.05);
+  --shadow-md: 0 8px 24px rgba(27, 36, 53, 0.08);
+
+  --ink: #1B2435;
+  --vermillion: #C45B4A;
+  --jade: #5A8A78;
+  --gold: #B8924A;
+  --indigo-ink: #3A5F8A;
+  --font-display: "Noto Serif SC", "STSong", "SimSun", serif;
+}
+
+[data-theme="blue-porcelain"].dark {
+  --bg-primary: #0E131A;
+  --bg-secondary: #131A24;
+  --bg-elevated: #192230;
+  --text-primary: #E0E6F0;
+  --text-secondary: #8F9BB2;
+  --text-tertiary: #5E6D85;
+  --accent: #6098D0;
+  --accent-soft: #182536;
+  --accent-warm: #7AA8DE;
+  --border-color: #243040;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --ink: #E0E6F0;
+  --vermillion: #D4705F;
+  --jade: #6B9E8B;
+  --gold: #C9A55A;
+  --indigo-ink: #6098D0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   朱砂主题 (Cinnabar) — 红黑热烈大气
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="cinnabar"] {
+  --bg-primary: #FBF5F2;
+  --bg-secondary: #F4E8E2;
+  --bg-elevated: #FFFBFA;
+  --text-primary: #2C1A1A;
+  --text-secondary: #785858;
+  --text-tertiary: #A58686;
+  --accent: #C34040;
+  --accent-soft: #FBE6E6;
+  --accent-warm: #D46840;
+  --border-color: #E6D2CE;
+  --shadow: 0 2px 8px rgba(44, 26, 26, 0.05);
+  --shadow-md: 0 8px 24px rgba(44, 26, 26, 0.08);
+
+  --ink: #2C1A1A;
+  --vermillion: #C34040;
+  --jade: #5A8A78;
+  --gold: #C98A3E;
+  --indigo-ink: #5A3A6A;
+  --font-display: "Noto Serif SC", "KaiTi", "STKaiti", serif;
+}
+
+[data-theme="cinnabar"].dark {
+  --bg-primary: #1A0F0F;
+  --bg-secondary: #201414;
+  --bg-elevated: #281919;
+  --text-primary: #F0DFD8;
+  --text-secondary: #B89590;
+  --text-tertiary: #886E68;
+  --accent: #E05A50;
+  --accent-soft: #301818;
+  --accent-warm: #D47850;
+  --border-color: #301F20;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --ink: #F0DFD8;
+  --vermillion: #E05A50;
+  --jade: #6B9E8B;
+  --gold: #D4A854;
+  --indigo-ink: #8B6AAA;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   竹韵主题 (Bamboo) — 青绿自然宁静
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="bamboo"] {
+  --bg-primary: #F3F6F1;
+  --bg-secondary: #E9F0E6;
+  --bg-elevated: #FAFCF8;
+  --text-primary: #1C2418;
+  --text-secondary: #586A50;
+  --text-tertiary: #889A80;
+  --accent: #487A3E;
+  --accent-soft: #E4F0E0;
+  --accent-warm: #789A50;
+  --border-color: #D2DECC;
+  --shadow: 0 2px 8px rgba(28, 36, 24, 0.05);
+  --shadow-md: 0 8px 24px rgba(28, 36, 24, 0.08);
+
+  --ink: #1C2418;
+  --vermillion: #B84C3D;
+  --jade: #487A3E;
+  --gold: #B6923E;
+  --indigo-ink: #3A586A;
+  --font-display: "Noto Serif SC", "STFangsong", "FangSong", serif;
+}
+
+[data-theme="bamboo"].dark {
+  --bg-primary: #0D130F;
+  --bg-secondary: #131A13;
+  --bg-elevated: #192219;
+  --text-primary: #DEE6D6;
+  --text-secondary: #9FB696;
+  --text-tertiary: #768A6E;
+  --accent: #5A9A48;
+  --accent-soft: #152616;
+  --accent-warm: #8AB660;
+  --border-color: #223022;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  --ink: #DEE6D6;
+  --vermillion: #D4705F;
+  --jade: #5A9A48;
+  --gold: #C9A54A;
+  --indigo-ink: #6A8CA8;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Theme background textures ── */
+body {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  /* 默认 = 水墨 (ink) */
+  background-image: url("/textures/ink.webp");
+}
+
+.dark body {
+  background-image: url("/textures/ink.webp");
+}
+
+/* 青花 */
+[data-theme="blue-porcelain"] body {
+  background-image: url("/textures/blue-porcelain.webp");
+}
+/* 朱砂 */
+[data-theme="cinnabar"] body {
+  background-image: url("/textures/cinnabar.webp");
+}
+/* 竹韵 */
+[data-theme="bamboo"] body {
+  background-image: url("/textures/bamboo.webp");
+}
+
+/* Ink wash texture overlay */
+.ink-wash {
+  position: relative;
+}
+.ink-wash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(184, 76, 61, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(92, 138, 110, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Chinese decorative line */
+.cn-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-tertiary);
+}
+.cn-divider::before,
+.cn-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+}
+
+/* Seal stamp effect */
+.seal-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--vermillion);
+  color: var(--vermillion);
+  font-family: var(--font-display);
+  transform: rotate(-3deg);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+
+/* Editor styles */
+.tiptap {
+  outline: none;
+  min-height: 300px;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: var(--text-tertiary);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.tiptap h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin: 2rem 0 1rem; line-height: 1.4; letter-spacing: 0.02em; }
+.tiptap h2 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; margin: 1.5rem 0 0.75rem; line-height: 1.4; }
+.tiptap h3 { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; margin: 1.25rem 0 0.625rem; line-height: 1.4; }
+.tiptap p { margin: 0.75rem 0; line-height: 2; letter-spacing: 0.02em; }
+.tiptap ul, .tiptap ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+.tiptap li { margin: 0.375rem 0; line-height: 1.8; }
+.tiptap blockquote {
+  border-left: 3px solid var(--vermillion);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+.tiptap code {
+  background: var(--bg-secondary);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+.tiptap pre {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.tiptap pre code { background: none; padding: 0; }
+.tiptap hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  margin: 2rem 0;
+}
+
+/* Focus mode */
+.editor-focus-mode .tiptap > *:not(.has-focus) {
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+}
+.editor-focus-mode .tiptap > .has-focus { opacity: 1; }
+
+/* Typewriter mode */
+.editor-typewriter .tiptap { padding-bottom: 50vh; }
+
+/* Rice paper texture */
+.paper-texture {
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(201, 148, 62, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 30%, rgba(184, 76, 61, 0.02) 0%, transparent 50%);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* Selection */
+::selection {
+  background: rgba(184, 76, 61, 0.15);
+  color: inherit;
+}
+
+/* Smooth transitions for theme switch */
+*, *::before, *::after {
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+/* ── AI Slider ── */
+.ai-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.ai-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-elevated);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.ai-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+.ai-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-elevated);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+/* ── AI Loading Ink Dots ── */
+@keyframes ink-spread {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.ink-dot {
+  animation: ink-spread 1.5s ease-in-out infinite;
+}
+
+/* ── Mini Player ── */
+.mini-player-track {
+  transition: all 0.2s ease;
+}
+.mini-player-track:hover {
+  background: var(--bg-secondary);
+}
+
+/* ── Chart SVG text ── */
+.fill-text-tertiary {
+  fill: var(--text-tertiary);
+}
+
+/* ── AI Panel scrollbar ── */
+.ai-panel-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.ai-panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
