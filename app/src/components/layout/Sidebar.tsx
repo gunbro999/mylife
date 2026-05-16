@@ -14,6 +14,7 @@ import {
   ChevronsRight,
   Clock,
   BarChart3,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/emotion", icon: Heart, label: "情", sublabel: "心情" },
   { href: "/timeline", icon: Clock, label: "溯", sublabel: "时间线" },
   { href: "/annual-report", icon: BarChart3, label: "览", sublabel: "年报" },
+  { href: "/poetry", icon: ScrollText, label: "诗", sublabel: "赏诗" },
 ];
 
 export function Sidebar() {
