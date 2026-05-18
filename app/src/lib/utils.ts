@@ -1,6 +1,28 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+export function isOfflineMode(): boolean {
+  // Runtime check (works for both server and client after hydration)
+  if (typeof window !== 'undefined' && (window as any).__MYLIFE_CONFIG__) {
+    const { url, key } = (window as any).__MYLIFE_CONFIG__;
+    return !url || !key;
+  }
+  // Server-side: read from runtime env vars
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return !url || !key;
+}
+
+export function getSupabaseConfig() {
+  if (typeof window !== 'undefined' && (window as any).__MYLIFE_CONFIG__) {
+    return (window as any).__MYLIFE_CONFIG__ as { url: string; key: string };
+  }
+  return {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+  };
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
