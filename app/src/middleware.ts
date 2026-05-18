@@ -3,10 +3,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  // Offline fallback: skip auth when Supabase credentials are missing
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey || supabaseKey === 'offline-mode-placeholder') {
+  // Read Supabase config — prefer non-NEXT_PUBLIC_ vars (runtime only, never inlined)
+  // fall back to NEXT_PUBLIC_ vars (may be inlined at build time)
+  const supabaseUrl =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    '';
+  const supabaseKey =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    '';
+  if (!supabaseUrl || !supabaseKey) {
     return supabaseResponse;
   }
 

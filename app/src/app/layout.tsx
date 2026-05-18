@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { AuthProvider } from "@/components/layout/AuthProvider";
 import { PWAProvider } from "@/components/layout/PWAProvider";
 
+// Force dynamic rendering so env vars are read at request time, not build time
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "浮生记 - MyLife",
   description: "智能写作与生活记录 — 让每一次落笔，都成为一种享受",
