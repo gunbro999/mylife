@@ -75,22 +75,38 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   signInWithEmail: async (email, password) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        return { error: '邮箱或密码错误' };
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: '邮箱或密码错误' };
+        }
+        return { error: error.message };
       }
-      return { error: error.message };
+      return {};
+    } catch (e: any) {
+      const msg = e.message || String(e);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        return { error: '无法连接服务器，请检查网络后重试' };
+      }
+      return { error: msg };
     }
-    return {};
   },
 
   signUpWithEmail: async (email, password) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    return {};
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error: error.message };
+      return {};
+    } catch (e: any) {
+      const msg = e.message || String(e);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        return { error: '无法连接服务器，请检查网络后重试' };
+      }
+      return { error: msg };
+    }
   },
 
   signInWithWechat: async () => {
