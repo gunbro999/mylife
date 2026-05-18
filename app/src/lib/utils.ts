@@ -7,9 +7,9 @@ export function isOfflineMode(): boolean {
     const { url, key } = (window as any).__MYLIFE_CONFIG__;
     return !url || !key;
   }
-  // Server-side: read from runtime env vars
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Server-side: prefer non-NEXT_PUBLIC_ vars (runtime), fallback for local dev
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return !url || !key;
 }
 
@@ -18,8 +18,8 @@ export function getSupabaseConfig() {
     return (window as any).__MYLIFE_CONFIG__ as { url: string; key: string };
   }
   return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    key: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
   };
 }
 

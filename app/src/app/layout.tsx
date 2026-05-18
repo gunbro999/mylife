@@ -29,8 +29,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  // Use non-NEXT_PUBLIC_ vars as primary — they are read at runtime.
+  // NEXT_PUBLIC_ vars are inlined at build time (empty in Docker/WCH builds).
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   return (
     <html lang="zh-CN" className="h-full" suppressHydrationWarning>

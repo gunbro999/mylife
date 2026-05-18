@@ -1,4 +1,5 @@
 import { createClient } from './supabase/client';
+import { getSupabaseConfig } from './utils';
 
 /** Compress image with canvas before upload */
 function compressImage(file: File, maxWidth = 1920, quality = 0.85): Promise<Blob> {
@@ -33,7 +34,7 @@ function generateFileName(ext: string): string {
 
 /** Upload image to Supabase Storage. Falls back to base64 data URL if Supabase is not configured. */
 export async function uploadImage(file: File, writingId: string): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const { url: supabaseUrl } = getSupabaseConfig();
 
   // Try Supabase upload if configured
   if (supabaseUrl && supabaseUrl !== 'https://xxxxxxxxxxxx.supabase.co') {
