@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 浮生记 (MyLife)
 
-## Getting Started
+智能写作与生活记录平台 — 让每一次落笔，都成为一种享受。
 
-First, run the development server:
+## 技术栈
+
+- **框架**: Next.js 16 (App Router) + TypeScript
+- **样式**: Tailwind CSS v4 + 中国风设计系统 (水墨/青花/朱砂/竹韵四主题)
+- **编辑器**: Tiptap (沉浸式/富文本/Markdown 三模式)
+- **状态管理**: Zustand + localStorage 持久化
+- **后端**: Supabase (认证 + PostgreSQL + Storage)
+- **AI**: 多提供商 (Claude / OpenAI / DeepSeek)
+- **音乐**: 网易云音乐 / Spotify / 本地文件
+- **容器化**: Docker (多阶段构建，node:20-alpine)
+
+## 本地开发
 
 ```bash
+# 安装依赖
+npm ci
+
+# 配置环境变量 (复制模板后填入你的 Key)
+cp .env.local.example .env.local
+
+# 启动开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 环境变量
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 变量 | 说明 | 必填 |
+|------|------|------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | ✅ |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务端密钥 | 可选 |
+| `DEEPSEEK_API_KEY` | DeepSeek AI (至少配一个AI) | 可选 |
+| `ANTHROPIC_API_KEY` | Claude AI | 可选 |
+| `OPENAI_API_KEY` | OpenAI | 可选 |
+| `WECHAT_APP_ID` / `WECHAT_APP_SECRET` | 微信登录 | 可选 |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | Spotify 音乐 | 可选 |
 
-## Learn More
+不配置 Supabase 时，应用自动进入离线模式（数据存 localStorage）。
 
-To learn more about Next.js, take a look at the following resources:
+## Docker 构建
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=your_url \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key \
+  -t mylife .
+docker run -p 3000:3000 mylife
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 部署
 
-## Deploy on Vercel
+生产环境部署于**微信云托管**，通过 GitHub 仓库 `gunbro999/mylife` 自动构建。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+详细部署方案见项目根目录 `PROGRESS.md` Phase 6。
