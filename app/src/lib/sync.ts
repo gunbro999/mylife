@@ -28,7 +28,42 @@ async function requireUserId(): Promise<string> {
 
 // ─── Writings ───────────────────────────────────────────────────────────────
 
-export async function syncWritingCreate(writing: {
+export async function syncWritingSave(writing: {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  isDraft: boolean;
+  tags: string[];
+  mood?: string | null;
+  weather?: string | null;
+  coverImage?: string | null;
+  color?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}) {
+  const uid = await requireUserId();
+  const { error } = await supabase().from('writings').upsert({
+    id: writing.id,
+    user_id: uid,
+    type: writing.type,
+    title: writing.title,
+    content: writing.content,
+    word_count: writing.wordCount,
+    is_draft: writing.isDraft,
+    tags: writing.tags,
+    mood: writing.mood ?? null,
+    weather: writing.weather ?? null,
+    cover_image: writing.coverImage ?? null,
+    color: writing.color ?? null,
+    created_at: writing.createdAt,
+    updated_at: writing.updatedAt,
+  }, { onConflict: 'id' });
+  if (error) console.error('syncWritingSave failed:', error);
+}
+
+// Keep legacy functions for migration compatibility
   id: string;
   type: string;
   title: string;

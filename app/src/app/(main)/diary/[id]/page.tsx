@@ -12,8 +12,9 @@ import { MoodPicker } from "@/components/diary/MoodPicker";
 import { WeatherPicker } from "@/components/diary/WeatherPicker";
 import { ShareCardModal } from "@/components/share/ShareCardModal";
 import type { Mood, Weather } from "@/lib/types";
-import { formatDate, stripHtml } from "@/lib/utils";
+import { formatDate, stripHtml, getWordCount } from "@/lib/utils";
 import { exportWritingToMarkdown, downloadFile, printWriting } from "@/lib/export";
+import { syncWritingSave, syncWritingDelete } from "@/lib/sync";
 import type { Writing } from "@/lib/types";
 
 export default function DiaryEditPage() {
@@ -78,14 +79,30 @@ export default function DiaryEditPage() {
   }, [content, id, getActiveConfig, addEmotionLog]);
 
   const handleSave = () => {
+    const now = new Date().toISOString();
     updateWriting(id, { title, content, mood, weather, isDraft: false });
     setHasChanges(false);
     analyzeEmotion();
+    // Sync to Supabase (upsert — creates if not exists)
+    syncWritingSave({
+      id,
+      type: 'diary',
+      title,
+      content,
+      wordCount: getWordCount(content),
+      isDraft: false,
+      tags: [],
+      mood: mood ?? null,
+      weather: weather ?? null,
+      createdAt: writing!.createdAt,
+      updatedAt: now,
+    });
   };
 
   const handleDelete = () => {
     if (confirm("确定要删除这篇日记吗？")) {
       deleteWriting(id);
+      syncWritingDelete(id);
       router.push("/diary");
     }
   };

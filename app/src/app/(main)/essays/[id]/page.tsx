@@ -10,8 +10,9 @@ import { useEmotionStore } from "@/stores/emotionStore";
 import { Editor } from "@/components/editor/Editor";
 import { TagManager } from "@/components/essays/TagManager";
 import { ShareCardModal } from "@/components/share/ShareCardModal";
-import { formatDate, stripHtml } from "@/lib/utils";
+import { formatDate, stripHtml, getWordCount } from "@/lib/utils";
 import { exportWritingToMarkdown, downloadFile } from "@/lib/export";
+import { syncWritingSave, syncWritingDelete } from "@/lib/sync";
 
 export default function EssayEditPage() {
   const params = useParams();
@@ -81,14 +82,28 @@ export default function EssayEditPage() {
   }, [content, id, getActiveConfig, addEmotionLog]);
 
   const handleSave = () => {
+    const now = new Date().toISOString();
     updateWriting(id, { title, content, tags, isDraft: false });
     setHasChanges(false);
     analyzeEmotion();
+    // Sync to Supabase (upsert — creates if not exists)
+    syncWritingSave({
+      id,
+      type: 'essay',
+      title,
+      content,
+      wordCount: getWordCount(content),
+      isDraft: false,
+      tags,
+      createdAt: writing!.createdAt,
+      updatedAt: now,
+    });
   };
 
   const handleDelete = () => {
     if (confirm("确定要删除这篇随笔吗？")) {
       deleteWriting(id);
+      syncWritingDelete(id);
       router.push("/essays");
     }
   };
