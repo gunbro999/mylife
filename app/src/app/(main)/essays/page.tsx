@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWritingStore } from "@/stores/writingStore";
 import { EssayCard } from "@/components/essays/EssayCard";
+import { TemplateModal } from "@/components/template/TemplateModal";
 
 export default function EssaysPage() {
   const router = useRouter();
+  const [templateOpen, setTemplateOpen] = useState(false);
   const writings = useWritingStore((s) => s.writings);
   const addWriting = useWritingStore((s) => s.addWriting);
 
@@ -21,8 +23,7 @@ export default function EssaysPage() {
   );
 
   const handleNewEssay = () => {
-    const writing = addWriting("essay");
-    router.push(`/essays/${writing.id}`);
+    setTemplateOpen(true);
   };
 
   return (
@@ -80,6 +81,7 @@ export default function EssaysPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      <TemplateModal open={templateOpen} onClose={() => setTemplateOpen(false)} type="essay" />
     </div>
   );
 }

@@ -15,6 +15,9 @@ import {
   Clock,
   BarChart3,
   ScrollText,
+  Bookmark,
+  Sparkles,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/uiStore";
@@ -30,6 +33,9 @@ const NAV_ITEMS = [
   { href: "/timeline", icon: Clock, label: "溯", sublabel: "时间线" },
   { href: "/annual-report", icon: BarChart3, label: "览", sublabel: "年报" },
   { href: "/poetry", icon: ScrollText, label: "诗", sublabel: "赏诗" },
+  { href: "/excerpts", icon: Bookmark, label: "摘", sublabel: "摘录" },
+  { href: "/poetry-create", icon: Sparkles, label: "咏", sublabel: "赋诗" },
+  { href: "/settings", icon: Settings, label: "设", sublabel: "设置" },
 ];
 
 export function Sidebar() {

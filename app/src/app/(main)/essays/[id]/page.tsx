@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { ArrowLeft, Trash2, Save, Sparkles, Share2 } from "lucide-react";
+import { ArrowLeft, Trash2, Save, Sparkles, Share2, Download } from "lucide-react";
 import { useWritingStore } from "@/stores/writingStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useAIConfigStore } from "@/stores/aiConfigStore";
@@ -11,6 +11,7 @@ import { Editor } from "@/components/editor/Editor";
 import { TagManager } from "@/components/essays/TagManager";
 import { ShareCardModal } from "@/components/share/ShareCardModal";
 import { formatDate, stripHtml } from "@/lib/utils";
+import { exportWritingToMarkdown, downloadFile } from "@/lib/export";
 
 export default function EssayEditPage() {
   const params = useParams();
@@ -123,6 +124,18 @@ export default function EssayEditPage() {
             title="分享"
           >
             <Share2 size={15} />
+          </button>
+          <button
+            onClick={() => {
+              if (writing) {
+                const md = exportWritingToMarkdown(writing);
+                downloadFile(md, `${writing.type === 'essay' ? '随笔' : '写作'}_${writing.createdAt.slice(0, 10)}.md`);
+              }
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-tertiary transition-all hover:bg-accent-soft hover:text-accent"
+            title="导出 Markdown"
+          >
+            <Download size={15} />
           </button>
           <button
             onClick={handleSave}

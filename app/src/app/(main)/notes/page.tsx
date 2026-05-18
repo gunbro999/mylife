@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
+import { LayoutTemplate } from "lucide-react";
 import { useWritingStore } from "@/stores/writingStore";
 import { NoteCard } from "@/components/notes/NoteCard";
 import { QuickNoteInput } from "@/components/notes/QuickNoteInput";
+import { TemplateModal } from "@/components/template/TemplateModal";
 
 export default function NotesPage() {
+  const [templateOpen, setTemplateOpen] = useState(false);
   const writings = useWritingStore((s) => s.writings);
   const addWriting = useWritingStore((s) => s.addWriting);
   const deleteWriting = useWritingStore((s) => s.deleteWriting);
@@ -41,11 +44,20 @@ export default function NotesPage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-display font-bold text-text-primary tracking-widest">小 记</h1>
-        <p className="text-xs text-text-tertiary mt-1.5 font-display tracking-wider italic">
-          灵光一闪，拈笔即记
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-text-primary tracking-widest">小 记</h1>
+          <p className="text-xs text-text-tertiary mt-1.5 font-display tracking-wider italic">
+            灵光一闪，拈笔即记
+          </p>
+        </div>
+        <button
+          onClick={() => setTemplateOpen(true)}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-bg-secondary hover:text-text-primary transition-all"
+        >
+          <LayoutTemplate size={13} />
+          从模板创建
+        </button>
       </div>
 
       {/* Quick input */}
@@ -77,6 +89,7 @@ export default function NotesPage() {
           </div>
         )}
       </AnimatePresence>
+      <TemplateModal open={templateOpen} onClose={() => setTemplateOpen(false)} type="note" />
     </div>
   );
 }

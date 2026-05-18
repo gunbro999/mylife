@@ -1,9 +1,12 @@
 "use client";
 
+"use client";
+
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AIPanel } from "@/components/ai/AIPanel";
 import { MusicRecommendations } from "@/components/music/MusicRecommendations";
+import { SearchPanel } from "@/components/search/SearchPanel";
 import { useUIStore } from "@/stores/uiStore";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +34,7 @@ export default function MainLayout({
         </div>
       </div>
       <MusicRecommendations />
+      <SearchPanel />
     </div>
   );
 }

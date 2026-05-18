@@ -9,11 +9,13 @@ import { cn } from "@/lib/utils";
 import { useWritingStore } from "@/stores/writingStore";
 import { DiaryCalendar } from "@/components/diary/DiaryCalendar";
 import { DiaryCard } from "@/components/diary/DiaryCard";
+import { TemplateModal } from "@/components/template/TemplateModal";
 
 export default function DiaryPage() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [templateOpen, setTemplateOpen] = useState(false);
   const writings = useWritingStore((s) => s.writings);
   const addWriting = useWritingStore((s) => s.addWriting);
 
@@ -32,10 +34,7 @@ export default function DiaryPage() {
   }, [diaries, selectedDate, viewMode]);
 
   const handleNewDiary = () => {
-    const writing = addWriting("diary", {
-      title: format(new Date(), "yyyy年M月d日"),
-    });
-    router.push(`/diary/${writing.id}`);
+    setTemplateOpen(true);
   };
 
   return (
@@ -140,6 +139,7 @@ export default function DiaryPage() {
           </AnimatePresence>
         </div>
       </div>
+      <TemplateModal open={templateOpen} onClose={() => setTemplateOpen(false)} type="diary" />
     </div>
   );
 }

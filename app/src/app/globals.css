@@ -17,6 +17,14 @@
   --color-gold: var(--gold);
   --color-indigo-ink: var(--indigo-ink);
 
+  /* Aliases for shadcn/ui convention */
+  --color-theme-bg: var(--bg-primary);
+  --color-theme-text: var(--text-primary);
+  --color-theme-border: var(--border-color);
+  --color-muted-foreground: var(--text-tertiary);
+  --color-card: var(--bg-elevated);
+  --color-accent-foreground: #FFFFFF;
+
   --font-sans: "Inter", "Noto Sans SC", sans-serif;
   --font-serif: "Noto Serif SC", "STSong", "SimSun", serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -428,6 +436,23 @@ body {
 /* ── Chart SVG text ── */
 .fill-text-tertiary {
   fill: var(--text-tertiary);
+}
+
+/* ── Editor images ── */
+.editor-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  display: block;
+}
+
+/* ── Search highlight ── */
+.search-highlight {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 /* ── AI Panel scrollbar ── */

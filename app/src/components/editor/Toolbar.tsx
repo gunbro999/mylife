@@ -5,7 +5,7 @@ import {
   Bold, Italic, Strikethrough,
   Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Code, Minus,
-  Undo, Redo, Sparkles,
+  Undo, Redo, Sparkles, Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +37,13 @@ function Sep() {
   return <div className="mx-0.5 h-4 w-px bg-border/60" />;
 }
 
-export function Toolbar({ editor, onAIClick }: { editor: Editor | null; onAIClick?: () => void }) {
+interface ToolbarProps {
+  editor: Editor | null;
+  onAIClick?: () => void;
+  onImageClick?: () => void;
+}
+
+export function Toolbar({ editor, onAIClick, onImageClick }: ToolbarProps) {
   if (!editor) return null;
 
   return (
@@ -55,6 +61,10 @@ export function Toolbar({ editor, onAIClick }: { editor: Editor | null; onAIClic
       <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive("orderedList")} title="有序列表"><ListOrdered size={14} /></Btn>
       <Btn onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive("blockquote")} title="引用"><Quote size={14} /></Btn>
       <Btn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="分割线"><Minus size={14} /></Btn>
+      <Sep />
+      <Btn onClick={() => onImageClick?.()} title="插入图片" highlight>
+        <Image size={14} />
+      </Btn>
       <Sep />
       <Btn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="撤销"><Undo size={14} /></Btn>
       <Btn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="重做"><Redo size={14} /></Btn>

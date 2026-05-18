@@ -1,22 +1,26 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
+import ImageExt from "@tiptap/extension-image";
 import { Toolbar } from "./Toolbar";
 import { EditorModeSwitch } from "./EditorModeSwitch";
 import { useUIStore } from "@/stores/uiStore";
 import { useEditorBridgeStore } from "@/stores/editorBridgeStore";
 import { cn } from "@/lib/utils";
+import { uploadImage, getImagesFromClipboard } from "@/lib/upload";
 
 interface EditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
   autoFocus?: boolean;
+  writingId?: string;
+  onImageUpload?: (url: string) => void;
 }
 
 export function Editor({
@@ -24,6 +28,8 @@ export function Editor({
   onChange,
   placeholder = "落笔之处，皆是生活...",
   autoFocus = true,
+  writingId = "",
+  onImageUpload,
 }: EditorProps) {
   const editorMode = useUIStore((s) => s.editorMode);
   const focusMode = useUIStore((s) => s.focusModeEnabled);
@@ -33,17 +39,44 @@ export function Editor({
   const setEditor = useEditorBridgeStore((s) => s.setEditor);
   const updateContent = useEditorBridgeStore((s) => s.updateContent);
   const updateSelection = useEditorBridgeStore((s) => s.updateSelection);
+  const uploadingRef = useRef(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({ placeholder }),
       CharacterCount,
+      ImageExt.configure({
+        allowBase64: true,
+        inline: false,
+        HTMLAttributes: {
+          class: "editor-image",
+        },
+      }),
     ],
     content,
     editorProps: {
       attributes: {
         class: "tiptap outline-none",
+      },
+      handlePaste: (view, event) => {
+        const images = getImagesFromClipboard(event as ClipboardEvent);
+        if (images.length > 0) {
+          event.preventDefault();
+          handleImageFiles(images);
+          return true;
+        }
+        return false;
+      },
+      handleDrop: (view, event, _moved, _supported) => {
+        const files = Array.from((event as DragEvent).dataTransfer?.files || []);
+        const images = files.filter((f) => f.type.startsWith('image/'));
+        if (images.length > 0) {
+          event.preventDefault();
+          handleImageFiles(images);
+          return true;
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
@@ -51,6 +84,35 @@ export function Editor({
     },
     immediatelyRender: false,
   });
+
+  const handleImageFiles = useCallback(async (files: File[]) => {
+    if (!editor || uploadingRef.current) return;
+    uploadingRef.current = true;
+
+    for (const file of files) {
+      try {
+        const url = await uploadImage(file, writingId);
+        editor.chain().focus().setImage({ src: url }).run();
+        onImageUpload?.(url);
+      } catch (e) {
+        console.error('Image upload failed:', e);
+      }
+    }
+
+    uploadingRef.current = false;
+  }, [editor, writingId, onImageUpload]);
+
+  const handleInsertImage = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = () => {
+      const files = Array.from(input.files || []);
+      handleImageFiles(files);
+    };
+    input.click();
+  }, [handleImageFiles]);
 
   useEffect(() => {
     if (editor && autoFocus) {
@@ -96,7 +158,6 @@ export function Editor({
 
   const handleAIClick = () => {
     setAIPanelOpen(true);
-    // Update bridge store with latest content/selection
     if (editor) {
       updateContent(editor.getHTML());
       const { from, to } = editor.state.selection;
@@ -142,13 +203,13 @@ export function Editor({
         >
           {editor && editorMode === "richtext" && (
             <BubbleMenu editor={editor}>
-              <Toolbar editor={editor} onAIClick={handleAIClick} />
+              <Toolbar editor={editor} onAIClick={handleAIClick} onImageClick={handleInsertImage} />
             </BubbleMenu>
           )}
 
           {editorMode === "richtext" && (
             <div className="mb-6">
-              <Toolbar editor={editor} onAIClick={handleAIClick} />
+              <Toolbar editor={editor} onAIClick={handleAIClick} onImageClick={handleInsertImage} />
             </div>
           )}
 

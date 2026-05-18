@@ -225,3 +225,57 @@ export interface PoemAnalysis {
   themes: string[];
   beauty: string;
 }
+
+// ── Excerpt types ──
+
+export type ExcerptType = "诗" | "词" | "曲" | "文";
+
+export const EXCERPT_TYPE_CONFIG: Record<ExcerptType, { label: string; emoji: string }> = {
+  诗: { label: "诗", emoji: "📜" },
+  词: { label: "词", emoji: "🎵" },
+  曲: { label: "曲", emoji: "🎭" },
+  文: { label: "文", emoji: "📖" },
+};
+
+export interface Excerpt {
+  id: string;
+  content: string;
+  author: string;
+  dynasty?: string;
+  type: ExcerptType;
+  sourceTitle?: string;
+  personalNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── AI Poem Creation types ──
+
+export type PoemGenre = "五言绝句" | "五言律诗" | "七言绝句" | "七言律诗" | "词" | "曲" | "现代诗";
+
+export const POEM_GENRE_CONFIG: Record<PoemGenre, { label: string; emoji: string; desc: string }> = {
+  五言绝句: { label: "五言绝句", emoji: "✒️", desc: "四句，每句五字" },
+  五言律诗: { label: "五言律诗", emoji: "📝", desc: "八句，每句五字" },
+  七言绝句: { label: "七言绝句", emoji: "🖊️", desc: "四句，每句七字" },
+  七言律诗: { label: "七言律诗", emoji: "📜", desc: "八句，每句七字" },
+  词:        { label: "词",   emoji: "🎵", desc: "按词牌填词" },
+  曲:        { label: "曲",   emoji: "🎭", desc: "散曲风格" },
+  现代诗:    { label: "现代诗", emoji: "✨", desc: "自由表达" },
+};
+
+export interface CreatedPoem {
+  id: string;
+  title: string;
+  content: string;
+  genre: PoemGenre;
+  sourceIds: string[];
+  sourceSnippets: string[];
+  aiProvider: string;
+  aiModel: string;
+  explanation?: string;
+  isEdited: boolean;
+  editedContent?: string;
+  personalNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
