@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, setRuntimeConfig } from '@/lib/supabase/client';
 import { isOfflineMode } from '@/lib/utils';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -38,14 +38,27 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   initialize: async () => {
     if (get().initialized) return;
 
+    // If window.__MYLIFE_CONFIG__ is empty, try server API endpoint as fallback
     if (isOfflineMode()) {
-      set({
-        user: MOCK_USER,
-        session: null,
-        loading: false,
-        initialized: true,
-      });
-      return;
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.supabaseUrl && data.supabaseKey) {
+            setRuntimeConfig(data.supabaseUrl, data.supabaseKey);
+            // Config injected — fall through to normal init below
+          } else {
+            set({ user: MOCK_USER, session: null, loading: false, initialized: true });
+            return;
+          }
+        } else {
+          set({ user: MOCK_USER, session: null, loading: false, initialized: true });
+          return;
+        }
+      } catch {
+        set({ user: MOCK_USER, session: null, loading: false, initialized: true });
+        return;
+      }
     }
 
     try {
