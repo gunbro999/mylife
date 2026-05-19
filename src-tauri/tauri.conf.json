@@ -5,8 +5,8 @@
   "identifier": "com.mylife.app",
   "build": {
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "npm run dev --prefix app",
-    "beforeBuildCommand": "npm run build --prefix app"
+    "beforeDevCommand": "npm run dev --prefix ../app",
+    "beforeBuildCommand": "npm run build --prefix ../app"
   },
   "app": {
     "withGlobalTauri": true,
