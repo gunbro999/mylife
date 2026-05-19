@@ -51,19 +51,6 @@ fn dir_exists(path: String) -> bool {
 }
 
 pub fn run() {
-    // Create tray menu items
-    let show = MenuItemBuilder::with_id("show", "显示浮生记").build;
-    let hide = MenuItemBuilder::with_id("hide", "隐藏窗口").build;
-    let quit = MenuItemBuilder::with_id("quit", "退出").build;
-
-    let tray_menu = MenuBuilder::new(&tauri::App::default())
-        .item(&show(&tauri::App::default()).unwrap())
-        .item(&hide(&tauri::App::default()).unwrap())
-        .separator()
-        .item(&quit(&tauri::App::default()).unwrap())
-        .build()
-        .unwrap();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -79,6 +66,18 @@ pub fn run() {
             dir_exists,
         ])
         .setup(|app| {
+            // Build tray menu items — needs AppHandle, so done inside setup
+            let show = MenuItemBuilder::with_id("show", "显示浮生记").build(app.handle())?;
+            let hide = MenuItemBuilder::with_id("hide", "隐藏窗口").build(app.handle())?;
+            let quit = MenuItemBuilder::with_id("quit", "退出").build(app.handle())?;
+
+            let tray_menu = MenuBuilder::new(app.handle())
+                .item(&show)
+                .item(&hide)
+                .separator()
+                .item(&quit)
+                .build()?;
+
             // System tray
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
@@ -108,8 +107,8 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
+                        let app_handle = tray.app_handle();
+                        if let Some(window) = app_handle.get_webview_window("main") {
                             if window.is_visible().unwrap_or(false) {
                                 let _ = window.hide();
                             } else {
