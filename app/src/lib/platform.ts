@@ -2,9 +2,9 @@
  * Platform abstraction layer.
  *
  * Detects Tauri vs browser and provides a unified API for file system
- * operations. In Tauri, we use native Rust commands (faster, no
- * browser restrictions). In browser, we fall back to File System
- * Access API with IndexedDB handle persistence.
+ * operations. In Tauri, we use window.__TAURI__ IPC directly (no npm
+ * imports needed), so the web build never resolves Tauri packages.
+ * In browser, we fall back to File System Access API.
  */
 
 // ── Detection ──
@@ -22,16 +22,22 @@ export interface FileEntry {
   handle?: FileSystemFileHandle;
 }
 
-// ── Tauri native operations (lazy imports to avoid bundling in browser) ──
+// ── Tauri: access window.__TAURI__ directly (no npm import needed) ──
 
-async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core');
-  return invoke<T>(cmd, args);
+function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const tauri = (window as any).__TAURI__;
+  if (!tauri?.core?.invoke) return Promise.reject(new Error('Not in Tauri'));
+  return tauri.core.invoke(cmd, args);
 }
 
+// ── Tauri native operations (via IPC, no npm imports) ──
+
 async function tauriPickDirectory(): Promise<{ name: string; path: string }> {
-  const { open } = await import('@tauri-apps/plugin-dialog');
-  const result = await open({ directory: true, multiple: false, title: '选择文件夹' });
+  const result = await tauriInvoke<string>('plugin:dialog|open', {
+    directory: true,
+    multiple: false,
+    title: '选择文件夹',
+  });
   if (!result) throw new Error('User cancelled');
   const path = result as string;
   const name = path.split(/[/\\]/).pop() || path;
@@ -69,11 +75,14 @@ async function tauriCheckDir(dirPath: string): Promise<boolean> {
   return tauriInvoke('dir_exists', { path: dirPath });
 }
 
+async function tauriReadBinaryFile(filepath: string): Promise<Uint8Array> {
+  return tauriInvoke<Uint8Array>('plugin:fs|read_file', { path: filepath });
+}
+
 // ── Browser File System Access API operations ──
 
 async function browserPickDirectory(): Promise<{ name: string; path: string }> {
   const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
-  // Store handle in IndexedDB for later use
   const { dbPut } = await import('@/lib/indexedDB');
   await dbPut('workspaceDir', handle);
   return { name: handle.name, path: handle.name };
@@ -155,9 +164,8 @@ export const platform = {
     browserHandle?: FileSystemDirectoryHandle
   ): Promise<Blob | null> {
     if (isTauri) {
-      const { readFile } = await import('@tauri-apps/plugin-fs');
       const sep = dirId.includes('\\') ? '\\' : '/';
-      const data = await readFile(`${dirId}${sep}${filename}`);
+      const data = await tauriReadBinaryFile(`${dirId}${sep}${filename}`);
       const ext = filename.slice(filename.lastIndexOf('.')).toLowerCase();
       const mimeMap: Record<string, string> = {
         '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.wav': 'audio/wav',
@@ -224,7 +232,6 @@ export const platform = {
     if (isTauri) {
       return tauriCheckDir(dirId);
     }
-    // Browser: check by trying to restore handle
     const { dbGet } = await import('@/lib/indexedDB');
     const handle = await dbGet(dirId);
     return !!handle;
