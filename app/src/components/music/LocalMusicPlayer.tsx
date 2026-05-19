@@ -9,18 +9,21 @@ import {
   FolderOpen,
   Loader2,
   Search,
+  FolderSearch,
 } from "lucide-react";
-import { useMusicStore } from "@/stores/musicStore";
+import { useMusicStore, getLiveMusicHandle } from "@/stores/musicStore";
 import type { MusicTrack } from "@/stores/musicStore";
 import { useGlobalAudio } from "./useGlobalAudio";
 import { ProgressBar } from "./ProgressBar";
 
 interface LocalFile {
   name: string;
-  path: string;
   size: number;
   ext: string;
+  handle: FileSystemFileHandle;
 }
+
+const AUDIO_EXTS = new Set(['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac', '.wma', '.ape']);
 
 export function LocalMusicPlayer() {
   const setCurrentTrack = useMusicStore((s) => s.setCurrentTrack);
@@ -29,6 +32,10 @@ export function LocalMusicPlayer() {
   const currentTime = useMusicStore((s) => s.currentTime);
   const duration = useMusicStore((s) => s.duration);
   const volume = useMusicStore((s) => s.volume);
+  const localMusicDirReady = useMusicStore((s) => s.localMusicDirReady);
+  const localMusicDirName = useMusicStore((s) => s.localMusicDirName);
+  const pickLocalMusicDir = useMusicStore((s) => s.pickLocalMusicDir);
+  const restoreLocalMusicDir = useMusicStore((s) => s.restoreLocalMusicDir);
 
   const { toggle, seek, setAudioVolume } = useGlobalAudio();
 
@@ -38,38 +45,60 @@ export function LocalMusicPlayer() {
   const [playlist, setPlaylist] = useState<LocalFile[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [filter, setFilter] = useState("");
-  const [folderPath, setFolderPath] = useState("");
 
-  // 用 ref 保持最新的播放列表引用，避免 auto-next effect 闭包过期
+  // Refs for auto-next
   const playlistRef = useRef(playlist);
   playlistRef.current = playlist;
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
 
-  // Load file list
+  // Restore directory handle on mount
+  useEffect(() => {
+    restoreLocalMusicDir();
+  }, [restoreLocalMusicDir]);
+
+  // Load files from directory handle
   const loadFiles = useCallback(async () => {
+    const handle = getLiveMusicHandle();
+    if (!handle) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const resp = await fetch("/api/music/local/list");
-      const data = await resp.json();
-      if (data.success) {
-        setTracks(data.tracks);
-        setPlaylist(data.tracks);
-        setFolderPath(data.folder || "");
-      } else {
-        setError(data.error || "无法读取音乐文件夹");
+      const files: LocalFile[] = [];
+      const iter = (handle as any).values();
+      for await (const entry of iter) {
+        if (entry.kind !== 'file') continue;
+        const name = entry.name as string;
+        const dot = name.lastIndexOf('.');
+        const ext = dot >= 0 ? name.slice(dot).toLowerCase() : '';
+        if (!AUDIO_EXTS.has(ext)) continue;
+        files.push({
+          name,
+          size: 0, // size not available from handle entry
+          ext,
+          handle: entry as FileSystemFileHandle,
+        });
       }
-    } catch {
-      setError("无法连接本地音乐服务");
+      files.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+      setTracks(files);
+      setPlaylist(files);
+    } catch (e) {
+      setError("无法读取音乐文件夹，请检查权限");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadFiles();
-  }, [loadFiles]);
+    if (localMusicDirReady) {
+      loadFiles();
+    } else {
+      setLoading(false);
+    }
+  }, [localMusicDirReady, loadFiles]);
 
   // Filter
   useEffect(() => {
@@ -81,19 +110,30 @@ export function LocalMusicPlayer() {
     }
   }, [filter, tracks]);
 
-  // Play a specific file
-  const playFile = (file: LocalFile, index: number) => {
-    const url = `/api/music/local/stream?file=${encodeURIComponent(file.path)}`;
+  // Play a specific file — read via FileHandle and create blob URL
+  const playFile = async (file: LocalFile, index: number) => {
+    try {
+      const blob = await file.handle.getFile();
+      const url = URL.createObjectURL(blob);
 
-    const track: MusicTrack = {
-      id: `local-${file.path}`,
-      name: file.name.replace(/\.[^.]+$/, ""),
-      artist: "本地音乐",
-      platform: "none",
-      url,
-    };
-    setCurrentTrack(track);
-    setCurrentIndex(index);
+      // Revoke previous blob URL for this player
+      const prevUrl = currentTrack?.url;
+      if (prevUrl && prevUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(prevUrl);
+      }
+
+      const track: MusicTrack = {
+        id: `local-${file.name}`,
+        name: file.name.replace(/\.[^.]+$/, ""),
+        artist: "本地音乐",
+        platform: "none",
+        url,
+      };
+      setCurrentTrack(track);
+      setCurrentIndex(index);
+    } catch {
+      // File read failed
+    }
   };
 
   const playNext = () => {
@@ -108,11 +148,10 @@ export function LocalMusicPlayer() {
     playFile(playlist[prev], prev);
   };
 
-  // 当前播放的是否是本列表中的歌曲
   const isLocalTrackActive = currentTrack?.id?.startsWith("local-");
   const isCurrentlyPlaying = isLocalTrackActive && isPlaying;
 
-  // 播放结束后自动切下一首
+  // Auto-next on song end
   const currentTimeRef = useRef(currentTime);
   currentTimeRef.current = currentTime;
   const durationRef = useRef(duration);
@@ -125,7 +164,6 @@ export function LocalMusicPlayer() {
 
     if (!isLocalTrackActive) return;
 
-    // 仅在歌曲自然结束时自动切歌（currentTime 接近 duration）
     const ct = currentTimeRef.current;
     const dur = durationRef.current;
     if (wasPlaying && !isPlaying && dur > 0 && ct >= dur - 1) {
@@ -133,30 +171,33 @@ export function LocalMusicPlayer() {
       const idx = currentIndexRef.current;
       if (pl.length > 0) {
         const next = (idx + 1) % pl.length;
-        const file = pl[next];
-        const url = `/api/music/local/stream?file=${encodeURIComponent(file.path)}`;
-        const track: MusicTrack = {
-          id: `local-${file.path}`,
-          name: file.name.replace(/\.[^.]+$/, ""),
-          artist: "本地音乐",
-          platform: "none",
-          url,
-        };
-        setCurrentTrack(track);
-        setCurrentIndex(next);
+        playFile(pl[next], next);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, isLocalTrackActive]);
 
-  const formatSize = (bytes: number): string => {
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
+  const displayName = (name: string): string => name.replace(/\.[^.]+$/, "");
 
-  const displayName = (name: string): string => {
-    return name.replace(/\.[^.]+$/, "");
-  };
+  // No directory selected
+  if (!localMusicDirReady) {
+    return (
+      <div className="text-center py-8 px-3">
+        <FolderOpen size={24} className="mx-auto text-text-tertiary/40 mb-2" />
+        <p className="text-[11px] text-text-tertiary mb-1">尚未选择本地音乐文件夹</p>
+        <p className="text-[9px] text-text-tertiary/60 mb-3">
+          选择一个文件夹来播放其中的音乐文件
+        </p>
+        <button
+          onClick={pickLocalMusicDir}
+          className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-opacity"
+        >
+          <FolderSearch size={13} />
+          选择音乐文件夹
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -171,9 +212,6 @@ export function LocalMusicPlayer() {
       <div className="text-center py-8 px-3">
         <FolderOpen size={24} className="mx-auto text-text-tertiary/40 mb-2" />
         <p className="text-[11px] text-text-tertiary mb-1">{error}</p>
-        <p className="text-[9px] text-text-tertiary/60 mb-3">
-          请在 .env.local 中设置 LOCAL_MUSIC_PATH 指向你的音乐文件夹
-        </p>
         <button
           onClick={loadFiles}
           className="text-[10px] text-accent hover:underline"
@@ -186,7 +224,7 @@ export function LocalMusicPlayer() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search */}
+      {/* Search + folder info */}
       <div className="px-3 pb-2">
         <div className="relative">
           <Search
@@ -201,11 +239,18 @@ export function LocalMusicPlayer() {
             className="w-full h-7 rounded-lg border border-border bg-bg-secondary/60 pl-7 pr-2 text-[10px] text-text-primary placeholder:text-text-tertiary outline-none focus:border-accent/30"
           />
         </div>
-        {folderPath && (
-          <p className="text-[8px] text-text-tertiary/50 mt-1 truncate px-1">
-            {folderPath}
+        <div className="flex items-center justify-between mt-1 px-1">
+          <p className="text-[8px] text-text-tertiary/50 truncate">
+            {localMusicDirName} · {tracks.length} 首
           </p>
-        )}
+          <button
+            onClick={pickLocalMusicDir}
+            className="text-[8px] text-text-tertiary/50 hover:text-accent transition-colors"
+            title="更换文件夹"
+          >
+            <FolderSearch size={10} />
+          </button>
+        </div>
       </div>
 
       {/* Playlist */}
@@ -220,11 +265,11 @@ export function LocalMusicPlayer() {
         ) : (
           <div className="space-y-0.5">
             {playlist.map((file, idx) => {
-              const fileTrackId = `local-${file.path}`;
+              const fileTrackId = `local-${file.name}`;
               const isActive = currentTrack?.id === fileTrackId;
               return (
                 <button
-                  key={file.path}
+                  key={file.name}
                   onClick={() => playFile(file, idx)}
                   className={`flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-left transition-colors group ${
                     isActive
@@ -245,7 +290,7 @@ export function LocalMusicPlayer() {
                       {displayName(file.name)}
                     </p>
                     <p className="text-[8px] text-text-tertiary/60">
-                      {file.ext.replace(".", "").toUpperCase()} · {formatSize(file.size)}
+                      {file.ext.replace(".", "").toUpperCase()}
                     </p>
                   </div>
                 </button>
@@ -257,7 +302,6 @@ export function LocalMusicPlayer() {
 
       {/* Playback controls */}
       <div className="border-t border-border/60 px-3 py-2 space-y-2">
-        {/* Now playing */}
         <div className="text-center min-h-[16px]">
           {isLocalTrackActive && currentTrack ? (
             <p className="text-[9px] text-text-primary truncate font-medium">
@@ -268,7 +312,6 @@ export function LocalMusicPlayer() {
           )}
         </div>
 
-        {/* Progress bar */}
         {isLocalTrackActive && (
           <ProgressBar
             currentTime={currentTime}
@@ -278,7 +321,6 @@ export function LocalMusicPlayer() {
           />
         )}
 
-        {/* Controls */}
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={playPrev}

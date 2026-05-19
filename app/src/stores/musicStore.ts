@@ -1,5 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { dbGet, dbPut, dbDelete } from "@/lib/indexedDB";
+
+let liveMusicHandle: FileSystemDirectoryHandle | null = null;
+
+export function getLiveMusicHandle() {
+  return liveMusicHandle;
+}
 
 export type MusicPlatform = "spotify" | "netease";
 
@@ -61,6 +68,10 @@ interface MusicState {
   searchQuery: string;
   playerExpanded: boolean;
 
+  // 本地音乐目录
+  localMusicDirReady: boolean;
+  localMusicDirName: string | null;
+
   // 网易云歌单
   neteasePlaylists: NeteasePlaylist[];
   neteasePlaylistTracks: MusicTrack[];
@@ -92,6 +103,11 @@ interface MusicState {
   setPlayerExpanded: (expanded: boolean) => void;
   togglePlayer: () => void;
 
+  // 本地音乐目录 actions
+  pickLocalMusicDir: () => Promise<void>;
+  restoreLocalMusicDir: () => Promise<void>;
+  clearLocalMusicDir: () => Promise<void>;
+
   // 网易云歌单 actions
   setNeteasePlaylists: (playlists: NeteasePlaylist[]) => void;
   setNeteasePlaylistTracks: (tracks: MusicTrack[]) => void;
@@ -119,6 +135,9 @@ export const useMusicStore = create<MusicState>()(
       recommendations: [],
       searchQuery: "",
       playerExpanded: false,
+
+      localMusicDirReady: false,
+      localMusicDirName: null,
 
       neteasePlaylists: [],
       neteasePlaylistTracks: [],
@@ -173,6 +192,42 @@ export const useMusicStore = create<MusicState>()(
 
       togglePlayer: () => set((s) => ({ playerExpanded: !s.playerExpanded })),
 
+      pickLocalMusicDir: async () => {
+        try {
+          const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+          liveMusicHandle = handle;
+          await dbPut('musicDir', handle);
+          set({ localMusicDirReady: true, localMusicDirName: handle.name });
+        } catch (e) {
+          if ((e as Error).name !== 'AbortError') {
+            console.error('pickLocalMusicDir failed:', e);
+          }
+        }
+      },
+
+      restoreLocalMusicDir: async () => {
+        try {
+          const stored = (await dbGet('musicDir')) as FileSystemDirectoryHandle | undefined;
+          if (!stored) return;
+          const handle = stored as any;
+          const perm =
+            (await handle.queryPermission({ mode: 'readwrite' })) === 'granted' ||
+            (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
+          if (perm) {
+            liveMusicHandle = stored;
+            set({ localMusicDirReady: true, localMusicDirName: stored.name });
+          }
+        } catch {
+          // IndexedDB not available or permission denied
+        }
+      },
+
+      clearLocalMusicDir: async () => {
+        liveMusicHandle = null;
+        await dbDelete('musicDir');
+        set({ localMusicDirReady: false, localMusicDirName: null });
+      },
+
       setNeteasePlaylists: (playlists) => set({ neteasePlaylists: playlists }),
       setNeteasePlaylistTracks: (tracks) => set({ neteasePlaylistTracks: tracks, neteasePlaylistView: "songs" }),
       setNeteasePlaylistView: (view) => set({ neteasePlaylistView: view }),
@@ -186,6 +241,8 @@ export const useMusicStore = create<MusicState>()(
         neteaseCookie: state.neteaseCookie,
         neteaseUser: state.neteaseUser,
         volume: state.volume,
+        localMusicDirReady: state.localMusicDirReady,
+        localMusicDirName: state.localMusicDirName,
       }),
     }
   )

@@ -2,11 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { ArrowLeft, Trash2, Save, Sparkles, Share2, Download } from "lucide-react";
+import { ArrowLeft, Trash2, Save, Sparkles, Share2, Download, CloudUpload, Check } from "lucide-react";
 import { useWritingStore } from "@/stores/writingStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useAIConfigStore } from "@/stores/aiConfigStore";
 import { useEmotionStore } from "@/stores/emotionStore";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Editor } from "@/components/editor/Editor";
 import { MoodPicker } from "@/components/diary/MoodPicker";
 import { WeatherPicker } from "@/components/diary/WeatherPicker";
@@ -28,6 +29,9 @@ export default function DiaryEditPage() {
   const toggleAIPanel = useUIStore((s) => s.toggleAIPanel);
   const getActiveConfig = useAIConfigStore((s) => s.getActiveConfig);
   const addEmotionLog = useEmotionStore((s) => s.addLog);
+  const workspaceReady = useWorkspaceStore((s) => s.isReady);
+  const workspaceSave = useWorkspaceStore((s) => s.saveToFile);
+  const workspaceDelete = useWorkspaceStore((s) => s.deleteFile);
 
   const writing = getWritingById(id);
   const [title, setTitle] = useState(writing?.title ?? "");
@@ -36,6 +40,7 @@ export default function DiaryEditPage() {
   const [weather, setWeather] = useState<Weather | undefined>(writing?.weather);
   const [hasChanges, setHasChanges] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'unsynced' | 'syncing' | 'synced'>('synced');
 
   useEffect(() => {
     if (!writing) router.replace("/diary");
@@ -78,29 +83,62 @@ export default function DiaryEditPage() {
     }
   }, [content, id, getActiveConfig, addEmotionLog]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     updateWriting(id, { title, content, mood, weather, isDraft: false });
     setHasChanges(false);
     analyzeEmotion();
-    // Sync to Supabase (upsert — creates if not exists)
-    syncWritingSave({
-      id,
-      type: 'diary',
-      title,
-      content,
-      wordCount: getWordCount(content),
-      isDraft: false,
-      tags: [],
-      mood: mood ?? null,
-      weather: weather ?? null,
-      createdAt: writing!.createdAt,
-      updatedAt: now,
-    });
+    setSyncStatus('unsynced');
+
+    // Save to local workspace folder
+    if (workspaceReady && writing) {
+      const updated: Writing = {
+        ...writing,
+        title,
+        content,
+        mood,
+        weather,
+        isDraft: false,
+        tags: [],
+        updatedAt: now,
+        wordCount: getWordCount(content),
+      };
+      const filename = `日记_${writing.createdAt.slice(0, 10)}.md`;
+      const md = exportWritingToMarkdown(updated);
+      try { await workspaceSave(filename, md); } catch { /* workspace not ready */ }
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!writing) return;
+    setSyncStatus('syncing');
+    const now = new Date().toISOString();
+    try {
+      await syncWritingSave({
+        id,
+        type: 'diary',
+        title,
+        content,
+        wordCount: getWordCount(content),
+        isDraft: false,
+        tags: [],
+        mood: mood ?? null,
+        weather: weather ?? null,
+        createdAt: writing.createdAt,
+        updatedAt: now,
+      });
+      setSyncStatus('synced');
+    } catch {
+      setSyncStatus('unsynced');
+    }
   };
 
   const handleDelete = () => {
     if (confirm("确定要删除这篇日记吗？")) {
+      if (workspaceReady && writing) {
+        const filename = `日记_${writing.createdAt.slice(0, 10)}.md`;
+        try { workspaceDelete(filename); } catch { /* ignore */ }
+      }
       deleteWriting(id);
       syncWritingDelete(id);
       router.push("/diary");
@@ -150,6 +188,26 @@ export default function DiaryEditPage() {
             title="导出 Markdown"
           >
             <Download size={15} />
+          </button>
+          <button
+            onClick={handleUpload}
+            disabled={syncStatus === 'synced' || syncStatus === 'syncing'}
+            className={`flex h-8 w-8 items-center justify-center rounded-full transition-all ${
+              syncStatus === 'synced'
+                ? 'text-green-500 bg-green-50 dark:bg-green-500/10'
+                : syncStatus === 'syncing'
+                ? 'text-accent'
+                : 'text-text-tertiary hover:bg-accent-soft hover:text-accent'
+            }`}
+            title={syncStatus === 'synced' ? '已同步到云端' : syncStatus === 'syncing' ? '同步中...' : '上传到云端'}
+          >
+            {syncStatus === 'syncing' ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+            ) : syncStatus === 'synced' ? (
+              <Check size={15} />
+            ) : (
+              <CloudUpload size={15} />
+            )}
           </button>
           <button
             onClick={handleSave}

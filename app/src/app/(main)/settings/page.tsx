@@ -1,14 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Download, FileText, FileJson, Archive } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Download, FileText, FileJson, Archive, FolderOpen, FolderCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useWritingStore } from '@/stores/writingStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { exportJSONBackup, exportToZip } from '@/lib/export';
 
 export default function SettingsPage() {
   const writings = useWritingStore((s) => s.writings);
   const [exporting, setExporting] = useState(false);
+  const workspaceReady = useWorkspaceStore((s) => s.isReady);
+  const workspaceName = useWorkspaceStore((s) => s.directoryName);
+  const pickDirectory = useWorkspaceStore((s) => s.pickDirectory);
+  const restoreWorkspace = useWorkspaceStore((s) => s.restore);
+  const clearWorkspace = useWorkspaceStore((s) => s.clear);
+  const [workspaceSupported, setWorkspaceSupported] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !('showDirectoryPicker' in window)) {
+      setWorkspaceSupported(false);
+    } else {
+      restoreWorkspace();
+    }
+  }, [restoreWorkspace]);
 
   const handleExportJSON = () => {
     exportJSONBackup();
@@ -54,6 +69,65 @@ export default function SettingsPage() {
         设置与数据管理
       </h1>
       <p className="text-xs text-text-tertiary mb-8">管理你的写作数据</p>
+
+      {/* Workspace Section */}
+      <section className="mb-10">
+        <h2 className="text-sm font-medium text-text-primary mb-4 flex items-center gap-2">
+          <FolderOpen size={15} />
+          本地存储位置
+        </h2>
+
+        {!workspaceSupported ? (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-text-tertiary">
+              你的浏览器不支持本地文件系统访问。请使用 Chromium 内核浏览器（Chrome / Edge / Opera）。
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                {workspaceReady ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <FolderCheck size={16} className="text-green-500 shrink-0" />
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {workspaceName}
+                      </p>
+                    </div>
+                    <p className="text-xs text-text-tertiary mt-1">
+                      写作内容将保存到此文件夹，上传按钮可同步到云端
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-text-primary">未设置存储位置</p>
+                    <p className="text-xs text-text-tertiary mt-1">
+                      选择一个本地文件夹用于存储写作文件（.md 格式）
+                    </p>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {workspaceReady && (
+                  <button
+                    onClick={clearWorkspace}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-tertiary hover:text-vermillion hover:border-vermillion/30 transition-colors"
+                  >
+                    清除
+                  </button>
+                )}
+                <button
+                  onClick={pickDirectory}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-opacity"
+                >
+                  {workspaceReady ? '更改' : '选择文件夹'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Export Section */}
       <section className="mb-10">
