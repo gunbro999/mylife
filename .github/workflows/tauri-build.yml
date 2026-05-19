@@ -1,0 +1,63 @@
+name: Tauri Desktop Build
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'app/**'
+      - 'src-tauri/**'
+      - '.github/workflows/tauri-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: app
+
+      - name: Build Next.js (standalone)
+        run: npm run build
+        working-directory: app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Build Tauri (Windows)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: '浮生记 v__VERSION__'
+          releaseBody: |
+            ## 浮生记桌面版 v__VERSION__
+
+            Windows 桌面客户端，支持：
+            - 本地文件存储
+            - Supabase 云端同步
+            - 本地音乐播放
+            - 系统托盘
+            - 自动更新
+          releaseDraft: false
+          prerelease: false
+          args: '--target x86_64-pc-windows-msvc'
