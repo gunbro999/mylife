@@ -1,11 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { dbGet, dbPut, dbDelete } from "@/lib/indexedDB";
+import { isTauri, platform } from "@/lib/platform";
 
+// Tauri mode: stores path string. Browser mode: stores FileSystemDirectoryHandle
 let liveMusicHandle: FileSystemDirectoryHandle | null = null;
+let liveMusicPath: string | null = null;
 
 export function getLiveMusicHandle() {
   return liveMusicHandle;
+}
+export function getLiveMusicPath() {
+  return liveMusicPath;
 }
 
 export type MusicPlatform = "spotify" | "netease";
@@ -71,6 +77,7 @@ interface MusicState {
   // 本地音乐目录
   localMusicDirReady: boolean;
   localMusicDirName: string | null;
+  localMusicDirPath: string | null;
 
   // 网易云歌单
   neteasePlaylists: NeteasePlaylist[];
@@ -138,6 +145,7 @@ export const useMusicStore = create<MusicState>()(
 
       localMusicDirReady: false,
       localMusicDirName: null,
+      localMusicDirPath: null,
 
       neteasePlaylists: [],
       neteasePlaylistTracks: [],
@@ -194,10 +202,19 @@ export const useMusicStore = create<MusicState>()(
 
       pickLocalMusicDir: async () => {
         try {
-          const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
-          liveMusicHandle = handle;
-          await dbPut('musicDir', handle);
-          set({ localMusicDirReady: true, localMusicDirName: handle.name });
+          if (isTauri) {
+            const { name, path } = await platform.pickDirectory();
+            liveMusicPath = path;
+            liveMusicHandle = null;
+            await dbPut('musicDir', { tauriPath: path, name });
+            set({ localMusicDirReady: true, localMusicDirName: name, localMusicDirPath: path });
+          } else {
+            const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+            liveMusicHandle = handle;
+            liveMusicPath = null;
+            await dbPut('musicDir', { handle, name: handle.name });
+            set({ localMusicDirReady: true, localMusicDirName: handle.name, localMusicDirPath: handle.name });
+          }
         } catch (e) {
           if ((e as Error).name !== 'AbortError') {
             console.error('pickLocalMusicDir failed:', e);
@@ -207,15 +224,32 @@ export const useMusicStore = create<MusicState>()(
 
       restoreLocalMusicDir: async () => {
         try {
-          const stored = (await dbGet('musicDir')) as FileSystemDirectoryHandle | undefined;
+          const stored = (await dbGet('musicDir')) as any;
           if (!stored) return;
-          const handle = stored as any;
-          const perm =
-            (await handle.queryPermission({ mode: 'readwrite' })) === 'granted' ||
-            (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
-          if (perm) {
-            liveMusicHandle = stored;
-            set({ localMusicDirReady: true, localMusicDirName: stored.name });
+
+          if (isTauri) {
+            const path = stored.tauriPath || stored;
+            if (typeof path === 'string') {
+              const exists = await platform.dirExists(path);
+              if (exists) {
+                liveMusicPath = path;
+                liveMusicHandle = null;
+                const name = stored.name || path.split(/[/\\]/).pop() || path;
+                set({ localMusicDirReady: true, localMusicDirName: name, localMusicDirPath: path });
+              }
+            }
+          } else {
+            const handle = stored.handle || stored;
+            if (handle && typeof handle === 'object' && 'requestPermission' in handle) {
+              const perm =
+                (await (handle as any).queryPermission({ mode: 'readwrite' })) === 'granted' ||
+                (await (handle as any).requestPermission({ mode: 'readwrite' })) === 'granted';
+              if (perm) {
+                liveMusicHandle = handle as FileSystemDirectoryHandle;
+                liveMusicPath = null;
+                set({ localMusicDirReady: true, localMusicDirName: handle.name, localMusicDirPath: handle.name });
+              }
+            }
           }
         } catch {
           // IndexedDB not available or permission denied
@@ -224,8 +258,9 @@ export const useMusicStore = create<MusicState>()(
 
       clearLocalMusicDir: async () => {
         liveMusicHandle = null;
+        liveMusicPath = null;
         await dbDelete('musicDir');
-        set({ localMusicDirReady: false, localMusicDirName: null });
+        set({ localMusicDirReady: false, localMusicDirName: null, localMusicDirPath: null });
       },
 
       setNeteasePlaylists: (playlists) => set({ neteasePlaylists: playlists }),
@@ -243,6 +278,7 @@ export const useMusicStore = create<MusicState>()(
         volume: state.volume,
         localMusicDirReady: state.localMusicDirReady,
         localMusicDirName: state.localMusicDirName,
+        localMusicDirPath: state.localMusicDirPath,
       }),
     }
   )

@@ -1,28 +1,26 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dbGet, dbPut, dbDelete } from '@/lib/indexedDB';
+import { isTauri, platform } from '@/lib/platform';
 
-// Module-level hold on the live handle so we don't round-trip IndexedDB on every save
+// Tauri mode: dirPath is a native filesystem path (e.g., C:\Users\...\Documents)
+// Browser mode: liveHandle is the FileSystemDirectoryHandle (stored in IndexedDB)
+
 let liveHandle: FileSystemDirectoryHandle | null = null;
 
 interface WorkspaceState {
   isReady: boolean;
   directoryName: string | null;
+  /** Native file path (Tauri only) */
+  dirPath: string | null;
 
-  /** Open a directory picker and persist the handle */
   pickDirectory: () => Promise<void>;
-  /** Restore handle from IndexedDB on app init */
   restore: () => Promise<void>;
-  /** Clear the workspace */
   clear: () => Promise<void>;
 
-  /** Save a file to the workspace directory */
   saveToFile: (filename: string, content: string) => Promise<void>;
-  /** Delete a file from the workspace directory */
   deleteFile: (filename: string) => Promise<void>;
-  /** Read a file from the workspace directory */
   readFile: (filename: string) => Promise<string | null>;
-  /** List all .md files in the workspace directory */
   listFiles: () => Promise<string[]>;
 }
 
@@ -31,15 +29,23 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     (set, get) => ({
       isReady: false,
       directoryName: null,
+      dirPath: null,
 
       pickDirectory: async () => {
         try {
-          const handle = await (window as any).showDirectoryPicker({
-            mode: 'readwrite',
-          });
-          liveHandle = handle;
-          await dbPut('workspaceDir', handle);
-          set({ isReady: true, directoryName: handle.name });
+          if (isTauri) {
+            const { name, path } = await platform.pickDirectory();
+            set({ isReady: true, directoryName: name, dirPath: path });
+            // Persist path to IndexedDB
+            await dbPut('workspaceDir', { tauriPath: path, name });
+          } else {
+            const { name } = await platform.pickDirectory();
+            const stored = await dbGet('workspaceDir');
+            if (stored && typeof stored === 'object' && 'handle' in (stored as any)) {
+              liveHandle = (stored as any).handle as FileSystemDirectoryHandle;
+            }
+            set({ isReady: true, directoryName: name, dirPath: name });
+          }
         } catch (e) {
           if ((e as Error).name !== 'AbortError') {
             console.error('pickDirectory failed:', e);
@@ -50,15 +56,34 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       restore: async () => {
         if (get().isReady) return;
         try {
-          const stored = (await dbGet('workspaceDir')) as FileSystemDirectoryHandle | undefined;
+          const stored = (await dbGet('workspaceDir')) as any;
           if (!stored) return;
-          const handle = stored as any;
-          const perm =
-            (await handle.queryPermission({ mode: 'readwrite' })) === 'granted' ||
-            (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
-          if (perm) {
-            liveHandle = stored;
-            set({ isReady: true, directoryName: stored.name });
+
+          if (isTauri) {
+            const path = stored.tauriPath || stored;
+            if (typeof path === 'string') {
+              const exists = await platform.dirExists(path);
+              if (exists) {
+                const name = stored.name || path.split(/[/\\]/).pop() || path;
+                set({ isReady: true, directoryName: name, dirPath: path });
+              }
+            }
+          } else {
+            // Browser: stored should be FileSystemDirectoryHandle
+            const handle = stored.handle || stored;
+            if (handle && typeof handle === 'object' && 'requestPermission' in handle) {
+              const perm =
+                (await (handle as any).queryPermission({ mode: 'readwrite' })) === 'granted' ||
+                (await (handle as any).requestPermission({ mode: 'readwrite' })) === 'granted';
+              if (perm) {
+                liveHandle = handle as FileSystemDirectoryHandle;
+                set({
+                  isReady: true,
+                  directoryName: handle.name,
+                  dirPath: handle.name,
+                });
+              }
+            }
           }
         } catch {
           // IndexedDB not available or permission denied
@@ -68,47 +93,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       clear: async () => {
         liveHandle = null;
         await dbDelete('workspaceDir');
-        set({ isReady: false, directoryName: null });
+        set({ isReady: false, directoryName: null, dirPath: null });
       },
 
       saveToFile: async (filename: string, content: string) => {
-        const handle = liveHandle;
-        if (!handle) throw new Error('No workspace directory selected');
-        const fileHandle = await handle.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(content);
-        await writable.close();
+        const state = get();
+        if (!state.isReady) throw new Error('No workspace directory selected');
+        await platform.saveFile(state.dirPath || state.directoryName!, filename, content, liveHandle || undefined);
       },
 
       deleteFile: async (filename: string) => {
-        const handle = liveHandle;
-        if (!handle) throw new Error('No workspace directory selected');
-        await handle.removeEntry(filename);
+        const state = get();
+        if (!state.isReady) throw new Error('No workspace directory selected');
+        await platform.deleteFile(state.dirPath || state.directoryName!, filename, liveHandle || undefined);
       },
 
       readFile: async (filename: string): Promise<string | null> => {
-        const handle = liveHandle;
-        if (!handle) return null;
-        try {
-          const fileHandle = await handle.getFileHandle(filename);
-          const file = await fileHandle.getFile();
-          return await file.text();
-        } catch {
-          return null;
-        }
+        const state = get();
+        if (!state.isReady) return null;
+        return platform.readFile(state.dirPath || state.directoryName!, filename, liveHandle || undefined);
       },
 
       listFiles: async (): Promise<string[]> => {
-        const handle = liveHandle;
-        if (!handle) return [];
-        const result: string[] = [];
-        const iter = (handle as any).values();
-        for await (const entry of iter) {
-          if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-            result.push(entry.name);
-          }
-        }
-        return result.sort();
+        const state = get();
+        if (!state.isReady) return [];
+        const files = await platform.listFiles(
+          state.dirPath || state.directoryName!,
+          new Set(['.md']),
+          liveHandle || undefined
+        );
+        return files.map((f) => f.name).sort();
       },
     }),
     {
@@ -116,6 +130,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       partialize: (state) => ({
         isReady: state.isReady,
         directoryName: state.directoryName,
+        dirPath: state.dirPath,
       }),
     }
   )

@@ -11,8 +11,9 @@ import {
   Search,
   FolderSearch,
 } from "lucide-react";
-import { useMusicStore, getLiveMusicHandle } from "@/stores/musicStore";
+import { useMusicStore, getLiveMusicHandle, getLiveMusicPath } from "@/stores/musicStore";
 import type { MusicTrack } from "@/stores/musicStore";
+import { isTauri, platform } from "@/lib/platform";
 import { useGlobalAudio } from "./useGlobalAudio";
 import { ProgressBar } from "./ProgressBar";
 
@@ -20,10 +21,21 @@ interface LocalFile {
   name: string;
   size: number;
   ext: string;
-  handle: FileSystemFileHandle;
+  handle?: FileSystemFileHandle;
+  /** Tauri: full filesystem path to the file */
+  filePath?: string;
 }
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac', '.wma', '.ape']);
+
+function getMimeType(ext: string): string {
+  const map: Record<string, string> = {
+    '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.aac': 'audio/aac',
+    '.wma': 'audio/x-ms-wma', '.ape': 'audio/ape',
+  };
+  return map[ext] || 'audio/mpeg';
+}
 
 export function LocalMusicPlayer() {
   const setCurrentTrack = useMusicStore((s) => s.setCurrentTrack);
@@ -57,13 +69,34 @@ export function LocalMusicPlayer() {
     restoreLocalMusicDir();
   }, [restoreLocalMusicDir]);
 
-  // Load files from directory handle
+  // Load files from directory (Tauri: native path, Browser: FileSystemHandle)
   const loadFiles = useCallback(async () => {
-    const handle = getLiveMusicHandle();
-    if (!handle) {
-      setLoading(false);
+    if (isTauri) {
+      const path = getLiveMusicPath();
+      if (!path) { setLoading(false); return; }
+      setLoading(true);
+      setError(null);
+      try {
+        const entries = await platform.listFiles(path, AUDIO_EXTS);
+        const files: LocalFile[] = entries.map((e) => ({
+          name: e.name,
+          size: e.size,
+          ext: e.ext,
+          filePath: `${path}\\${e.name}`,
+        }));
+        setTracks(files);
+        setPlaylist(files);
+      } catch {
+        setError("无法读取音乐文件夹，请检查权限");
+      } finally {
+        setLoading(false);
+      }
       return;
     }
+
+    // Browser mode
+    const handle = getLiveMusicHandle();
+    if (!handle) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
@@ -75,17 +108,12 @@ export function LocalMusicPlayer() {
         const dot = name.lastIndexOf('.');
         const ext = dot >= 0 ? name.slice(dot).toLowerCase() : '';
         if (!AUDIO_EXTS.has(ext)) continue;
-        files.push({
-          name,
-          size: 0, // size not available from handle entry
-          ext,
-          handle: entry as FileSystemFileHandle,
-        });
+        files.push({ name, size: 0, ext, handle: entry as FileSystemFileHandle });
       }
       files.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
       setTracks(files);
       setPlaylist(files);
-    } catch (e) {
+    } catch {
       setError("无法读取音乐文件夹，请检查权限");
     } finally {
       setLoading(false);
@@ -110,13 +138,26 @@ export function LocalMusicPlayer() {
     }
   }, [filter, tracks]);
 
-  // Play a specific file — read via FileHandle and create blob URL
+  // Play a specific file — Tauri: read via Rust command, Browser: FileHandle blob
   const playFile = async (file: LocalFile, index: number) => {
     try {
-      const blob = await file.handle.getFile();
-      const url = URL.createObjectURL(blob);
+      let url: string;
 
-      // Revoke previous blob URL for this player
+      if (isTauri && file.filePath) {
+        // Tauri: read binary file via @tauri-apps/plugin-fs
+        const dirPath = file.filePath.replace(/\\[^\\]+$/, '');
+        const blob = await platform.readBinaryFile(dirPath, file.name);
+        if (!blob) throw new Error('Failed to read file');
+        url = URL.createObjectURL(blob);
+      } else if (file.handle) {
+        // Browser: read via FileSystemFileHandle
+        const blob = await file.handle.getFile();
+        url = URL.createObjectURL(blob);
+      } else {
+        return;
+      }
+
+      // Revoke previous blob URL
       const prevUrl = currentTrack?.url;
       if (prevUrl && prevUrl.startsWith('blob:')) {
         URL.revokeObjectURL(prevUrl);
@@ -170,8 +211,8 @@ export function LocalMusicPlayer() {
       const pl = playlistRef.current;
       const idx = currentIndexRef.current;
       if (pl.length > 0) {
-        const next = (idx + 1) % pl.length;
-        playFile(pl[next], next);
+        const nextIdx = (idx + 1) % pl.length;
+        playFile(pl[nextIdx], nextIdx);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
