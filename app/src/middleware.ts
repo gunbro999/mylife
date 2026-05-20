@@ -50,6 +50,7 @@ export async function middleware(request: NextRequest) {
 
   const isSharePage = request.nextUrl.pathname.startsWith('/share');
   const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
 
   // Allow public access to share pages and API routes (API routes handle their own auth)
   if (isSharePage || isApiRoute) {
@@ -66,6 +67,14 @@ export async function middleware(request: NextRequest) {
   // Redirect to home if already authenticated and on auth page
   if (user && isAuthPage) {
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Protect admin routes: only users with is_admin in app_metadata
+  if (isAdminRoute) {
+    const isAdmin = user?.app_metadata?.is_admin === true;
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return supabaseResponse;

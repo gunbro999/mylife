@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Download, FileText, FileJson, Archive, FolderOpen, FolderCheck } from 'lucide-react';
+import { ArrowLeft, Download, FileText, FileJson, Archive, FolderOpen, FolderCheck, Key, Shield, Smartphone, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useWritingStore } from '@/stores/writingStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useAuthStore } from '@/stores/authStore';
 import { exportJSONBackup, exportToZip } from '@/lib/export';
 
 export default function SettingsPage() {
@@ -210,6 +211,21 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Account Section */}
+      <section className="mb-10">
+        <h2 className="text-sm font-medium text-text-primary mb-4 flex items-center gap-2">
+          <Shield size={15} />
+          账号安全
+        </h2>
+
+        <div className="space-y-3">
+          {/* Change Password */}
+          <ChangePasswordCard />
+          {/* Delete Account */}
+          <DeleteAccountCard />
+        </div>
+      </section>
+
       {/* Stats */}
       <section>
         <h2 className="text-sm font-medium text-text-primary mb-4 flex items-center gap-2">
@@ -233,6 +249,158 @@ export default function SettingsPage() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+function ChangePasswordCard() {
+  const [show, setShow] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  const user = useAuthStore((s) => s.user);
+
+  const handleChange = async () => {
+    if (newPassword.length < 6) {
+      setMsg('密码至少6位');
+      return;
+    }
+    setLoading(true);
+    setMsg('');
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setMsg(error.message);
+      } else {
+        setMsg('密码修改成功');
+        setNewPassword('');
+        setShow(false);
+      }
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : '修改失败');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      {!show ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-text-primary">修改密码</p>
+            <p className="text-xs text-text-tertiary mt-0.5">
+              登录账号: {user?.email || '未知'}
+            </p>
+          </div>
+          <button
+            onClick={() => setShow(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-secondary transition-colors"
+          >
+            <Key size={13} />
+            修改
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-text-primary">设置新密码</p>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="输入新密码（至少6位）"
+            className="h-9 w-full rounded-lg border border-border bg-bg-elevated px-3 text-sm text-text-primary placeholder:text-text-tertiary outline-none focus:border-accent/40"
+          />
+          {msg && (
+            <p className={`text-xs ${msg.includes('成功') ? 'text-green-500' : 'text-red-500'}`}>
+              {msg}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleChange}
+              disabled={loading}
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {loading ? '提交中...' : '确认修改'}
+            </button>
+            <button
+              onClick={() => { setShow(false); setNewPassword(''); setMsg(''); }}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-tertiary hover:bg-bg-secondary transition-colors"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeleteAccountCard() {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const signOut = useAuthStore((s) => s.signOut);
+  const user = useAuthStore((s) => s.user);
+
+  const handleDelete = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // Delete user data via API
+      await fetch(`/api/admin/users?userId=${user.id}`, { method: 'DELETE' });
+      await signOut();
+      window.location.href = '/login';
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : '删除失败');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50/30 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-red-600">删除账号</p>
+          <p className="text-xs text-text-tertiary mt-0.5">
+            永久删除你的账号及所有写作数据，此操作不可恢复
+          </p>
+        </div>
+        <button
+          onClick={() => setConfirming(true)}
+          className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+        >
+          删除账号
+        </button>
+      </div>
+
+      {confirming && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setConfirming(false)} />
+          <div className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-96 rounded-xl border border-border bg-bg-elevated shadow-lg p-6">
+            <h3 className="text-lg font-bold text-text-primary mb-2">确认删除账号</h3>
+            <p className="text-sm text-text-secondary mb-4">
+              确定要永久删除账号 <strong>{user?.email}</strong> 吗？此操作将删除你的所有日记、随笔、小记、小说以及其他数据，且无法恢复。
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setConfirming(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm text-text-secondary hover:bg-bg-secondary transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {loading ? '删除中...' : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

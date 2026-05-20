@@ -319,6 +319,49 @@ export interface Database {
           created_at?: string;
         };
       };
+      app_settings: {
+        Row: {
+          id: string;
+          key: string;
+          value: Json;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          value: Json;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          value?: Json;
+          updated_at?: string;
+        };
+      };
+      announcements: {
+        Row: {
+          id: string;
+          content: string;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          content: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          content?: string;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+        };
+      };
       created_poems: {
         Row: {
           id: string;

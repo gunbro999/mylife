@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Search, Sun, Moon, Palette, Music, LogOut, User } from "lucide-react";
+import { Sparkles, Search, Sun, Moon, Palette, Music, LogOut, User, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUIStore } from "@/stores/uiStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -139,6 +139,15 @@ export function TopBar() {
                       {user.email}
                     </p>
                   </div>
+                  {user?.app_metadata?.is_admin && (
+                    <button
+                      onClick={() => router.push('/admin')}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:bg-bg-secondary hover:text-accent transition-colors"
+                    >
+                      <Shield size={13} />
+                      管理后台
+                    </button>
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="flex w-full items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:bg-bg-secondary hover:text-red-500 transition-colors"
