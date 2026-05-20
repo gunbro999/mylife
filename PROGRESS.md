@@ -1,6 +1,6 @@
 # 浮生记 (MyLife) — 项目进度表
 
-> 最后更新: 2026-05-18 (Phase 6 容器化部署完成 — 微信云托管上线)
+> 最后更新: 2026-05-20 (Phase 7 管理员后台上线)
 
 ## Phase 1: MVP 核心写作体验 ✅ 已完成
 
@@ -129,6 +129,57 @@ SUPABASE_ANON_KEY           = (同上，供服务端运行时读取)
 SUPABASE_SERVICE_ROLE_KEY   = (Supabase service_role secret)
 DEEPSEEK_API_KEY            = (DeepSeek API Key)
 ```
+
+---
+
+## Phase 7: 管理员后台 ✅ 已完成 (2026-05-20)
+
+| 模块 | 功能 | 状态 |
+|------|------|------|
+| 管理员识别 | Supabase `app_metadata.is_admin` 字段标记管理员身份 | ✅ |
+| 路由保护 | Middleware 拦截 `/admin/*`，非管理员重定向首页 | ✅ |
+| API 鉴权 | `/api/admin/*` 使用 `SUPABASE_SERVICE_ROLE_KEY`，绕过 RLS | ✅ |
+| 后台入口 | TopBar 用户菜单新增「管理后台」入口（仅管理员可见） | ✅ |
+| 仪表盘 | 4 统计卡片 + 用户增长柱状图 + 写作类型分布 + 最近用户/文章 | ✅ |
+| 用户管理 | 列表/邮箱搜索/排序/分页 + 详情面板 + 禁用/启用/删除账号 + 查看用户内容 | ✅ |
+| 内容管理 | 类型筛选/作者筛选/关键词搜索/排序/分页 + 只读预览 + 删除内容 | ✅ |
+| 数据统计 | 时间范围选择 + 每日新增/写作量柱状图 + 类型分布 + 活跃时段热力图 + Top10排行榜 + CSV导出 | ✅ |
+| 系统设置 | AI配置(提供商+模型) + 功能开关(开放注册/公开分享/AI助手/音乐/维护模式) + 平台公告管理 | ✅ |
+| 个人账号管理 | 设置页新增修改密码 + 删除账号（二次确认弹窗） | ✅ |
+| 数据库新增 | `app_settings` 键值配置表 + `announcements` 公告表 | ✅ |
+| 部署上线 | GitHub Push → 微信云托管自动构建部署 → 公网可访问 | ✅ |
+
+### 新增文件 (16个)
+
+```
+app/src/app/(admin)/layout.tsx              # 管理后台独立布局
+app/src/app/(admin)/admin/page.tsx          # 仪表盘页面
+app/src/app/(admin)/admin/users/page.tsx    # 用户管理页面
+app/src/app/(admin)/admin/content/page.tsx  # 内容管理页面
+app/src/app/(admin)/admin/stats/page.tsx    # 数据统计页面
+app/src/app/(admin)/admin/settings/page.tsx # 系统设置页面
+app/src/app/api/admin/overview/route.ts     # 仪表盘数据 API
+app/src/app/api/admin/users/route.ts        # 用户管理 API
+app/src/app/api/admin/content/route.ts      # 内容管理 API
+app/src/app/api/admin/stats/route.ts        # 数据统计 API
+app/src/app/api/admin/settings/route.ts     # 系统配置 API
+app/src/components/admin/AdminSidebar.tsx   # 后台侧边栏
+app/src/components/admin/StatsCard.tsx      # 统计卡片
+app/src/components/admin/DataTable.tsx      # 数据表格
+app/src/components/admin/UserDetailPanel.tsx # 用户详情面板
+app/src/components/admin/ContentPreview.tsx  # 内容预览面板
+app/src/stores/adminStore.ts               # 管理员状态管理
+app/src/lib/supabase/admin.ts              # service_role 客户端
+```
+
+### 修改文件 (4个)
+
+| 文件 | 变更 |
+|------|------|
+| `src/middleware.ts` | 增加 `/admin` 路由 `is_admin` 检查 |
+| `src/lib/supabase/types.ts` | 新增 `app_settings`、`announcements` 表类型 |
+| `src/components/layout/TopBar.tsx` | 管理员用户菜单新增后台入口 |
+| `src/app/(main)/settings/page.tsx` | 新增修改密码、删除账号功能 |
 
 ---
 
